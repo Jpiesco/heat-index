@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Heat Index</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  :root{
+    --flame-1:#FF2200;
+    --flame-2:#FF6B00;
+    --flame-3:#FFAA00;
+    --warm-bg:#0F0A06;
+    --text-main:#F5ECD5;
+    --text-dim:#A08060;
+  }
+
+  body{
+    background:var(--warm-bg);
+    font-family:"DM Sans",sans-serif;
+    color:var(--text-main);
+    max-width:640px;
+    margin:0 auto;
+    overflow-x:hidden;
+  }
+
+  /* HEADER */
+  .header{
+    padding:32px 24px 20px;
+    position:relative;
+    border-bottom:1px solid #2A1A0A;
+  }
+  .header-eyebrow{
+    font-size:10px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:6px;
+  }
+  .header-title{
+    font-family:"Bebas Neue",sans-serif;
+    font-size:clamp(64px,18vw,96px);
+    line-height:.9;letter-spacing:.02em;
+    background:linear-gradient(135deg,#FF2200 0%,#FF6B00 40%,#FFAA00 80%,#FFD166 100%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .header-sub{
+    font-size:11px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--text-dim);margin-top:4px;
+  }
+  .header-meta{
+    position:absolute;top:36px;right:24px;text-align:right;
+  }
+  .header-meta .date{
+    font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);
+  }
+  .header-meta .edition{
+    font-family:"Bebas Neue",sans-serif;font-size:28px;color:var(--flame-2);
+    line-height:1;margin-top:2px;
+  }
+
+  .thermo-bar{
+    height:3px;
+    background:linear-gradient(to right,#FFAA00,#FF6B00,#FF2200);
+    margin:0 24px;
+  }
+
+  .scroll-hint{
+    text-align:center;
+    padding:8px 0 4px;
+    font-size:9px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    color:#3A2010;
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+  .scroll-container{
+    max-height:560px;
+    overflow-y:auto;
+    padding:0 24px;
+    scrollbar-width:thin;
+    scrollbar-color:#FF6B00 #1C1008;
+  }
+  .scroll-container::-webkit-scrollbar{width:3px}
+  .scroll-container::-webkit-scrollbar-track{background:#1C1008}
+  .scroll-container::-webkit-scrollbar-thumb{background:var(--flame-2);border-radius:2px}
+
+  /* ITEM */
+  .item{
+    display:grid;
+    grid-template-columns:48px 1fr auto;
+    align-items:center;
+    gap:16px;
+    padding:18px 0;
+    border-bottom:1px solid #221208;
+    transition:background .15s, transform .15s;
+  }
+  .item:hover{
+    background:rgba(255,107,0,.04);
+    margin:0 -8px;
+    padding-left:8px;
+    padding-right:8px;
+    border-radius:6px;
+  }
+
+  /* TOP 3 glow */
+  .top3{
+    position:relative;
+    border-bottom:1px solid rgba(255,107,0,.22);
+    background:
+      radial-gradient(800px 200px at 20% 10%, rgba(255,34,0,.14), transparent 60%),
+      radial-gradient(600px 200px at 80% 60%, rgba(255,170,0,.10), transparent 60%);
+    box-shadow: 0 0 0 1px rgba(255,107,0,.10) inset;
+  }
+  .top3 .heat-bar{
+    box-shadow:
+      0 0 10px rgba(255,107,0,.25),
+      0 0 22px rgba(255,34,0,.15);
+  }
+  .top3 .heat-fill{
+    filter: drop-shadow(0 0 10px rgba(255,107,0,.35));
+  }
+
+  .rank-num{
+    font-family:"Bebas Neue",sans-serif;
+    font-size:36px;
+    text-align:center;
+    line-height:1;
+  }
+
+  .rank-1{color:#FF2200}
+  .rank-2{color:#FF3300}
+  .rank-3{color:#FF4400}
+  .rank-4{color:#FF5500}
+  .rank-5{color:#FF6600}
+  .rank-6{color:#FF7700}
+  .rank-7{color:#FF8800}
+  .rank-8{color:#FF9900}
+  .rank-9{color:#FFAA00}
+  .rank-10{color:#FFB800}
+  .rank-11{color:#FFC200}
+  .rank-12{color:#FFCC00}
+  .rank-13{color:#FFD166}
+  .rank-14{color:#FFD988}
+  .rank-15{color:#FFE0AA}
+
+  .item-info{min-width:0}
+
+  .item-name{
+    font-size:15px;
+    font-weight:500;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    line-height:1.25;
+  }
+
+  .item-detail{
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:2px;
+    letter-spacing:.02em;
+  }
+
+  /* #1 bigger */
+  .top1{
+    padding:22px 0;
+  }
+  .top1 .rank-num{
+    font-size:46px;
+  }
+  .top1 .item-name{
+    font-size:18px;
+    letter-spacing:.01em;
+  }
+  .top1 .item-detail{
+    font-size:12px;
+  }
+  .top1 .heat-bar{
+    height:44px;
+    width:7px;
+  }
+  .top1 .heat-score{
+    font-size:24px;
+  }
+
+  /* HEAT BADGE */
+  .heat-badge{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .heat-bar{
+    width:6px;
+    height:36px;
+    background:#2A1A0A;
+    border-radius:4px;
+    position:relative;
+    overflow:hidden;
+  }
+  .heat-fill{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    background:linear-gradient(to top,var(--flame-1),var(--flame-2),var(--flame-3));
+    border-radius:4px;
+  }
+  .heat-score{
+    font-family:"Bebas Neue",sans-serif;
+    font-size:20px;
+    color:var(--flame-2);
+    line-height:1;
+  }
+
+  .footer{
+    padding:16px 24px 24px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-top:1px solid #221208;
+  }
+  .footer-brand{
+    font-family:"Bebas Neue",sans-serif;
+    font-size:14px;
+    letter-spacing:.1em;
+    color:var(--text-dim);
+  }
+  .footer-brand span{color:var(--flame-2)}
+  .footer-note{
+    font-size:9px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#3A2010;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">What's Good Miami</div>
+  <div class="header-title">HEAT<br>INDEX</div>
+  <div class="header-sub">Miami's Hottest Right Now</div>
+  <div class="header-meta">
+    <div class="date">Feb 2026</div>
+    <div class="edition">Vol. 01</div>
+  </div>
+</div>
+
+<div class="thermo-bar"></div>
+<div class="scroll-hint">↓ scroll to see all 15 ↓</div>
+
+<div class="scroll-container">
+
+  <!-- 1 -->
+  <div class="item top3 top1">
+    <div class="rank-num rank-1">1</div>
+    <div class="item-info">
+      <div class="item-name">Sunny’s</div>
+      <div class="item-detail">Steak · The Epicenter</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:99%"></div></div>
+      <div class="heat-score">99</div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="item top3">
+    <div class="rank-num rank-2">2</div>
+    <div class="item-info">
+      <div class="item-name">COTE Miami</div>
+      <div class="item-detail">Korean BBQ · Michelin</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:98%"></div></div>
+      <div class="heat-score">98</div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="item top3">
+    <div class="rank-num rank-3">3</div>
+    <div class="item-info">
+      <div class="item-name">Surf Club Restaurant</div>
+      <div class="item-detail">Four Seasons · Thomas Keller</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:97%"></div></div>
+      <div class="heat-score">97</div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="item">
+    <div class="rank-num rank-4">4</div>
+    <div class="item-info">
+      <div class="item-name">Mother Wolf</div>
+      <div class="item-detail">Italian · Power Scene</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:95%"></div></div>
+      <div class="heat-score">95</div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="item">
+    <div class="rank-num rank-5">5</div>
+    <div class="item-info">
+      <div class="item-name">Yamashiro Miami</div>
+      <div class="item-detail">Japanese · Skyline Views</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:94%"></div></div>
+      <div class="heat-score">94</div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="item">
+    <div class="rank-num rank-6">6</div>
+    <div class="item-info">
+      <div class="item-name">Boia De</div>
+      <div class="item-detail">Italian · Quietly Elite</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:93%"></div></div>
+      <div class="heat-score">93</div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="item">
+    <div class="rank-num rank-7">7</div>
+    <div class="item-info">
+      <div class="item-name">Torno Subito</div>
+      <div class="item-detail">Italian · Creative Crowd</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:91%"></div></div>
+      <div class="heat-score">91</div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="item">
+    <div class="rank-num rank-8">8</div>
+    <div class="item-info">
+      <div class="item-name">Felice</div>
+      <div class="item-detail">Italian · Polished</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:90%"></div></div>
+      <div class="heat-score">90</div>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="item">
+    <div class="rank-num rank-9">9</div>
+    <div class="item-info">
+      <div class="item-name">Papi Steak</div>
+      <div class="item-detail">Steakhouse · South Beach</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:89%"></div></div>
+      <div class="heat-score">89</div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="item">
+    <div class="rank-num rank-10">10</div>
+    <div class="item-info">
+      <div class="item-name">LPM Restaurant</div>
+      <div class="item-detail">French Mediterranean · Brickell</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:88%"></div></div>
+      <div class="heat-score">88</div>
+    </div>
+  </div>
+
+  <!-- 11 -->
+  <div class="item">
+    <div class="rank-num rank-11">11</div>
+    <div class="item-info">
+      <div class="item-name">Nami Nori</div>
+      <div class="item-detail">Hand Rolls · Culturally Current</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:87%"></div></div>
+      <div class="heat-score">87</div>
+    </div>
+  </div>
+
+  <!-- 12 -->
+  <div class="item">
+    <div class="rank-num rank-12">12</div>
+    <div class="item-info">
+      <div class="item-name">Walrus Rodeo</div>
+      <div class="item-detail">Bar · Always Buzzing</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:86%"></div></div>
+      <div class="heat-score">86</div>
+    </div>
+  </div>
+
+  <!-- 13 -->
+  <div class="item">
+    <div class="rank-num rank-13">13</div>
+    <div class="item-info">
+      <div class="item-name">Bey Bey</div>
+      <div class="item-detail">Natural Wine · Late Nights</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:85%"></div></div>
+      <div class="heat-score">85</div>
+    </div>
+  </div>
+
+  <!-- 14 -->
+  <div class="item">
+    <div class="rank-num rank-14">14</div>
+    <div class="item-info">
+      <div class="item-name">Daniel’s Steakhouse</div>
+      <div class="item-detail">Steakhouse · Old-School Cool</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:84%"></div></div>
+      <div class="heat-score">84</div>
+    </div>
+  </div>
+
+  <!-- 15 -->
+  <div class="item">
+    <div class="rank-num rank-15">15</div>
+    <div class="item-info">
+      <div class="item-name">Recoveco</div>
+      <div class="item-detail">Spanish · Hidden Gem</div>
+    </div>
+    <div class="heat-badge">
+      <div class="heat-bar"><div class="heat-fill" style="height:83%"></div></div>
+      <div class="heat-score">83</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="footer-brand">What's Good <span>Miami</span></div>
+  <div class="footer-note">Updated Monthly</div>
+</div>
+
+</body>
+</html>
